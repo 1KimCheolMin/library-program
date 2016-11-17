@@ -1,0 +1,120 @@
+# library-program
+mysql> create table books{
+    -> bname int not null,
+    -> bno int not null primary key,
+    -> bsal int
+    -> };
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '{
+bname int not null,
+bno int not null primary key,
+bsal int
+}' at line 1
+mysql> create table books(
+    -> bno int noy null primary key,
+    -> bname int not null,
+    -> bsal int
+    -> );
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'noy null primary key,
+bname int not null,
+bsal int
+)' at line 2
+mysql> create table books( 
+    -> bno int not null primary key,
+    -> bname int not null,
+    -> bsal int
+    -> );
+wQuery OK, 0 rows affected (16.33 sec)
+
+mysql> show tables;
++---------------------------+
+| Tables_in_library_program |
++---------------------------+
+| books                     |
++---------------------------+
+1 row in set (0.00 sec)
+
+mysql> show columns from books;
++-------+---------+------+-----+---------+-------+
+| Field | Type    | Null | Key | Default | Extra |
++-------+---------+------+-----+---------+-------+
+| bno   | int(11) | NO   | PRI | NULL    |       |
+| bname | int(11) | NO   |     | NULL    |       |
+| bsal  | int(11) | YES  |     | NULL    |       |
++-------+---------+------+-----+---------+-------+
+3 rows in set (2.53 sec)
+
+mysql> insert into books values(001, 'The Little Prince', 16000);
+Query OK, 1 row affected, 1 warning (0.64 sec)
+
+mysql> alter table books modify bname char;
+Query OK, 1 row affected (5.33 sec)
+Records: 1  Duplicates: 0  Warnings: 0
+
+mysql> select * from books;
++-----+-------+-------+
+| bno | bname | bsal  |
++-----+-------+-------+
+|   1 | 0     | 16000 |
++-----+-------+-------+
+1 row in set (0.05 sec)
+
+mysql> show columns from books;
++-------+---------+------+-----+---------+-------+
+| Field | Type    | Null | Key | Default | Extra |
++-------+---------+------+-----+---------+-------+
+| bno   | int(11) | NO   | PRI | NULL    |       |
+| bname | char(1) | YES  |     | NULL    |       |
+| bsal  | int(11) | YES  |     | NULL    |       |
++-------+---------+------+-----+---------+-------+
+3 rows in set (0.08 sec)
+
+mysql> drop table books
+    -> ;
+Query OK, 0 rows affected (1.44 sec)
+
+mysql> create table books(
+    -> b_no int not null primary key,
+    -> b_name varchar(30) not null,
+    -> b_sal int,
+    -> b_author varchar(50),_
+    -> b_company varchar(50)
+    -> );
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'b_company varchar(50)
+)' at line 6
+mysql> create table books(
+    -> b_no int not null primary key,
+    -> b_name varchar(50) not null,
+    -> b_sal int,
+    -> b_author varchar(50),
+    -> b_company varchar(50)                                                        
+    -> );
+Query OK, 0 rows affected (0.19 sec)
+
+mysql>  
+mysql> 
+mysql> dsdddss
+    -> ;
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'dsdddss' at line 1
+mysql> insert into books values(001, '')
+    -> zs
+    -> ;
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'zs' at line 2
+mysql> insert into books values(001, '어린왕자', 16000, '생텍쥐페리', '솔');
+Query OK, 1 row affected, 3 warnings (0.10 sec)
+
+mysql> select * from books;
++------+--------+-------+----------+-----------+
+| b_no | b_name | b_sal | b_author | b_company |
++------+--------+-------+----------+-----------+
+|    1 | ????   | 16000 | ?????    | ?         |
++------+--------+-------+----------+-----------+
+1 row in set (0.00 sec)
+
+mysql> mysql> select * from books;
++------+--------+-------+----------+-----------+
+| b_no | b_name | b_sal | b_author | b_company |
++------+--------+-------+----------+-----------+
+|    1 | ????   | 16000 | ?????    | ?         |
++------+--------+-------+----------+-----------+
+1 row in set (0.02 sec)
+
