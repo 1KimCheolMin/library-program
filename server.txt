@@ -1,0 +1,162 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/wait.h>
+#include <mysql.h>
+
+#define MYPORT 5555
+#define BACKLOG 10
+#define MAXBUF 100
+
+/* Mysql 아이디, 패스워드 */
+#define DB_HOST "127.0.0.1"
+#define DB_USER "root"
+#define DB_PASS "cjfalswjddms"
+#define DB_NAME "lbr_pg"
+#define CHOP(x) x[strlen(x) - 1] = ' '
+
+int main()
+{
+int ssock, csock;
+        struct sockaddr_in serv_addr;
+        struct sockaddr_in clnt_addr;
+        char buf[MAXBUF];
+        int sin_size;
+
+        /* MySQL 테이블 불러오기 */
+        MYSQL           *connection=NULL, conn;
+        MYSQL_RES       *sql_result;
+        MYSQL_ROW       sql_row;
+        int             query_stat;
+
+        int b_no[11];
+        char b_name[50];
+        int b_sal[11];
+        char b_author[50];
+        char b_company[50];
+        char query[255];
+
+        mysql_init(&conn);
+
+        connection = mysql_real_connect(&conn, DB_HOST, DB_USER, DB_PASS,
+                                        DB_NAME, 3306, (char *)NULL, 0);
+        if (connection == NULL)
+        {
+                fprintf(stderr, "Mysql connection error : %s",
+                                mysql_error(&conn));
+                return 1;
+        }
+
+        query_stat = mysql_query(connection, "select * from books");
+        if (query_stat != 0)
+        {
+                fprintf(stderr, "Mysql query error : %s", mysql_error(&conn));
+                return 1;
+        }
+
+        sql_result = mysql_store_result(connection);
+
+        printf("%+11s %-30s %-10s", "번호", "책 이름", "가격",
+                                        "저자", "출판사");
+        while ( (sql_row = mysql_fetch_row(sql_result)) != NULL )
+        {
+                printf("%+11s %-30s %-10s", sql_row[0], sql_row[1],
+                                        sql_row[2], sql_row[3], sql_row[4]);
+        }
+
+        mysql_free_result(sql_result);
+
+        printf("번호 :");
+        fgets(b_no, 11, stdin);
+        CHOP(b_no);
+
+        printf("책 이름 :");
+        fgets(b_name, 50, stdin);
+        CHOP(b_name);
+
+        printf("가격 :");
+        fgets(b_sal, 11, stdin);
+        CHOP(b_sal);
+
+        printf("저자 :");
+        fgets(b_author, 50, stdin);
+        CHOP(b_author);
+        printf("출판사 :");
+        fgets(b_company, 50, stdin);
+        CHOP(b_company);
+
+        sprintf(query, "insert into books values "
+                   "('%d', '%s', '%d', '%s', '%s')",
+                   b_no, b_name, b_sal, b_author, b_company);
+
+        query_stat = mysql_query(connection, query);
+        if (query_stat != 0)
+        {
+                fprintf(stderr, "Mysql query error : %s", mysql_error(&conn));
+                return 1;
+        }
+
+        mysql_close(connection);
+
+        /* MySQL 접속 */
+        MYSQL mysql;
+        mysql_init(&mysql);
+
+        if(!mysql_real_connect(&mysql, NULL, "root", "cjfalswjddms", NULL,
+                                        3306, (char *)NULL, 0)){
+                printf("%s\n", mysql_error(&mysql));
+                exit(1);
+        }
+        printf("MYSQL이 성공적으로 연결 되었습니다.\n");
+        mysql_close(&mysql);
+
+
+        /* create server socket */
+        if((ssock = socket(AF_INET, SOCK_STREAM, 0)) == -1){
+                perror("socket");
+                exit(1);
+        }
+        /* server port setting */
+        memset(&serv_addr, 0, sizeof(serv_addr));
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_port = htons(MYPORT);
+        serv_addr.sin_addr.s_addr = INADDR_ANY;
+        if(bind(ssock, (struct sockaddr *)&serv_addr,
+                sizeof(struct sockaddr))== -1){
+                        perror("bind");
+                        exit(1);
+                        }
+        /* connect require accept */
+        if(listen(ssock, BACKLOG) == -1){
+                perror("listen");
+                exit(1);
+        }
+        while(1){
+        /* client socket information */
+        sin_size = sizeof(struct sockaddr_in);
+        if((csock = accept(ssock, (struct sockaddr *)
+                &clnt_addr, &sin_size)) == -1){
+                        perror("accept");
+                        continue;
+                }
+        printf("server : got connection from %s\n",
+                inet_ntoa(clnt_addr.sin_addr));
+        /* message give-take */
+        memset(buf, 0, MAXBUF);
+        if(recv(csock, buf, MAXBUF, 0)== -1){
+                perror("recv");
+                exit(0);
+        }
+        if(send(csock, buf, strlen(buf), 0)== -1){
+                perror("send");
+                close(csock);
+                exit(0);
+        }
+        close(csock);
+        }
+        return 0;
+}
