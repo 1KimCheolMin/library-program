@@ -1,0 +1,140 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/wait.h>
+#include <mysql.h>
+#include <arpa/inet.h>
+#include <ctype.h>
+
+#define SERV_TCP_PORT 5555                 // 개방할 포트
+#define SERV_ADDR "127.0.0.1"
+
+/* Mysql 아이디, 패스워드 */
+#define DB_HOST "127.0.0.1"
+#define DB_USER "root"
+#define DB_PASS "cjfalswjddms"
+#define DB_NAME "library_program"
+#define CHOP(x) x[strlen(x) - 1] = ' '
+
+void main(int argc, char *argv[])
+{
+        int s1,s2,x,i;
+        struct sockaddr_in serv_addr, cli_addr;
+        char buf[50];
+        size_t xx;
+
+        /* MYSQL 들고오기 */
+
+        MYSQL           *connection=NULL, conn;
+        // 연결 설정을 위한 변수
+        MYSQL_RES       *sql_result;
+        // 사용자가 보는 데이터
+        MYSQL_ROW       sql_row;
+        // 디비로부터 받는 데이터
+        int             query_stat;
+        // 쿼리 버퍼
+
+
+        char result[255];
+        /* 쿼리 문 */
+        char* query_f="select * from books";
+ char b_name[50];
+        int b_sal[11];
+        char b_author[50];
+        char b_company[50];
+        char query[255];
+
+        mysql_init(&conn);
+
+        connection = mysql_real_connect(&conn, DB_HOST, DB_USER, DB_PASS,
+                                        DB_NAME, 3306, (char *)NULL, 0);
+
+        if (connection == NULL)
+        {
+                fprintf(stderr, "Mysql connection error : %s",
+                                mysql_error(&conn));
+                return 1;
+        }
+
+        query_stat = mysql_query(connection, "select * from books");
+        if (query_stat != 0)
+         {
+                fprintf(stderr, "Mysql query error : %s", mysql_error(&conn));
+                return 1;
+        }
+
+        sql_result = mysql_store_result(connection);
+
+        MYSQL mysql;
+        mysql_init(&mysql);
+
+
+
+        if(!mysql_real_connect(&mysql, NULL, "root", "cjfalswjddms",
+                                    "library_program", 3306, (char *)NULL, 0)){
+                printf("%s\n", mysql_error(&mysql));
+                exit(1);
+        }
+ printf("MYSQL에 성공적으로 접속하였습니다\n");
+        mysql_close(&mysql);
+
+
+
+
+        printf("Hi, I am the server\n");
+        bzero((char *)&serv_addr, sizeof(serv_addr));
+        serv_addr.sin_family=AF_INET;
+        serv_addr.sin_addr.s_addr=inet_addr(SERV_ADDR);
+        serv_addr.sin_port=htons(SERV_TCP_PORT);
+        if((s1=socket(PF_INET, SOCK_STREAM, 0))<0)
+        {
+                printf("socket creation error\n");
+                exit(1);
+        }
+        printf("socket created successfully. socket num is %d\n", s1);
+        x=bind(s1, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+        if (x < 0)
+        {
+                printf("binding failed\n");
+                 exit(1);
+        }
+        printf("binding passed\n");
+        listen(s1, 5);
+        xx = sizeof(cli_addr);
+        s2 = accept(s1,(struct sockaddr *)&cli_addr,&xx);
+        printf("we passed accept. new socket num is %d\n", s2);
+
+        read(s2,buf,10);
+//      buf[strlen(buf)-1]='\0'; 
+        buf[10]=0;
+        printf("client->server : %s\n",buf);
+
+        if(!strcmp(buf,"f")){
+                sprintf(buf, "select * from books");
+                query_stat=mysql_query(connection, "select * from books");
+                sql_result=mysql_store_result(connection);
+        /*
+                mysql_query(connection, buf);
+                sql_result=mysql_store_result(connection);
+                buf==sql_result;        */
+ while((sql_row=mysql_fetch_row(sql_result))!=NULL){
+                        for(i=0;i<sql_result;i++){
+                        sprintf(result, "%10s\n",
+                                 sql_row[i]?sql_row[i]:"NULL");
+                        write(s2, result, strlen(result));
+                        }
+                }
+        }
+
+
+/*        printf("what do you want to send to cli? enter your string\n"); 
+        scanf("%s", buf); 
+        write(s2,buf,strlen(buf)); */
+
+      //  exit(0); 
+        mysql_close(connection);
+}
