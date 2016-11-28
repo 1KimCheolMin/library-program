@@ -1,0 +1,112 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <mysql.h>
+#include <arpa/inet.h>
+
+#define SERV_TCP_PORT 5555                      // 연결할 포트
+#define SERV_ADDR "127.0.0.1"              // 접속할 서버의 IP
+
+/* mysql 아이디, 패스워드 */
+#define DB_HOST "127.0.0.1"
+#define DB_USER "root"
+#define DB_PASS "cjfalswjddms"
+#define DB_NAME "library_program"
+#define CHOP(x) x[strlen(x) - 1] = ' '
+
+
+main()
+{
+        int x;
+        struct sockaddr_in  serv_addr;
+        char buf[300];
+        char input[10];
+        printf("Hi, I am the client\n");
+        bzero((char *) &serv_addr, sizeof(serv_addr));
+        serv_addr.sin_family = PF_INET;
+        serv_addr.sin_addr.s_addr = inet_addr(SERV_ADDR);
+        serv_addr.sin_port = htons(SERV_TCP_PORT);
+
+
+        /* member Table */
+        char m_name[20];
+        char m_birth[20];
+        char m_tel[20];
+
+        /* open a tcp socket*/
+        if ( (x =socket(PF_INET, SOCK_STREAM,0)) < 0)
+        {
+               printf("socket creation error\n");
+               exit(1);
+         }
+ printf(" socket opened successfully. socket num is %d\n", x);
+         /* connect to  the server */
+         if (connect(x, (struct sockaddr *) &serv_addr, sizeof(serv_addr))<0)
+         {
+               printf("can't connect to the server\n");
+               exit(1);
+         }
+
+        /* 메뉴 출력 */
+        printf("--------------------------------------------\n");
+        printf("| 도서 관리 프로그램에 오신걸 환영합니다 ! |\n");
+        printf("|------------------------------------------|\n");
+        printf("|                                          |\n");
+        printf("|  (A) 회원 등록                           |\n");
+        printf("|  (B) 도서 검색                           |\n");
+        printf("|  (C) 대출 및 반납                        |\n");
+        printf("|  (D) 도서 저장                           |\n");
+        printf("|  (E) 회원 검색                           |\n");
+        printf("|  (F) 도서 목록                           |\n");
+        printf("|                                          |\n");
+        printf("|------------------------------------------|\n");
+  printf("|  원하는 기능의 버튼을 눌러주세요         |\n");
+        printf("--------------------------------------------\n");
+
+
+         /* send input str to the server */
+//        printf("now i am connected to the erver. enter a string to send\n"); 
+        printf("버튼을 입력하세요 : ");
+        scanf("%s", input);
+        write(x,input,strlen(input));
+
+        printf("now let's read from the server\n");
+        while(1){
+
+        if(!strcmp(input,"f")){
+        int e=read(x,buf,255);
+             if (e<=0) break;
+                buf[50]=0;
+
+        printf("책 정보 : %s\n",buf);
+        }
+
+ if(!strcmp(input, "a")){
+                __fpurge(stdin);
+                printf(" NAME : ");
+                fgets(m_name, 20, stdin);
+                CHOP(m_name);
+
+                write(x, m_name, strlen(m_name));
+
+                printf(" BIRTH : ");
+                fgets(m_birth, 20, stdin);
+                CHOP(m_birth);
+
+                write(x, m_birth, strlen(m_birth));
+
+                printf(" TEL : ");
+                fgets(m_tel, 20, stdin);
+                CHOP(m_tel);
+
+                write(x, m_tel, strlen(m_tel));  printf("client dddD\n");
+                break;
+        }
+
+        }
+}
