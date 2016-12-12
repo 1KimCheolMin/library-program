@@ -1,0 +1,324 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/wait.h>
+#include <mysql.h>
+#include <arpa/inet.h>
+#include <ctype.h>
+
+#define SERV_TCP_PORT 5555                 // 개방할 포트
+#define SERV_ADDR "127.0.0.1"
+
+/* Mysql 아이디, 패스워드 */
+#define DB_HOST "127.0.0.1"
+#define DB_USER "root"
+#define DB_PASS "cjfalswjddms"
+#define DB_NAME "library_program"
+#define CHOP(x) x[strlen(x) - 1] = ' '
+
+int main(int argc, char *argv[])
+{
+        int s1,s2,x,i;
+        struct sockaddr_in serv_addr, cli_addr;
+        char buf[1000];
+        size_t xx;
+
+        /* MYSQL 들고오기 */
+
+        MYSQL           *connection=NULL, conn;
+        // 연결 설정을 위한 변수
+        MYSQL_RES       *sql_result;
+        // 사용자가 보는 데이터
+        MYSQL_ROW       sql_row;
+        // 디비로부터 받는 데이터
+int             query_stat;
+        // 쿼리 버퍼
+
+        int fields; // 필드 갯수
+        char result[1000];
+        /* 쿼리 문 */
+        char* query_f="select * from books";
+        char test[1000];
+
+        // books table
+        int b_no[11];
+        char b_name[50];
+        int b_sal[11];
+        char b_author[50];
+        char b_company[50];
+        char query[255];
+        char s_bookname[100];
+        char e_name[20];
+
+        // member table
+        char m_name[20];
+        char m_birth[20];
+        char m_tel[20];
+        char a_no[10];
+        char a_name[20];
+        char a_company[20];
+        char a_sal[20];
+        char a_author[20];
+
+
+        mysql_init(&conn);
+
+        connection = mysql_real_connect(&conn, DB_HOST, DB_USER, DB_PASS,
+                                        DB_NAME, 3306, (char *)NULL, 0);
+
+        if (connection == NULL)
+{
+                fprintf(stderr, "Mysql connection error : %s",
+                                mysql_error(&conn));
+                return 1;
+        }
+
+
+        query_stat = mysql_query(connection, "select * from books");
+//      query_stat2 = mysql_query(connection, "select * from member");
+
+
+        if(query_stat !=0){
+                fprintf(stderr, "Mysql query error : %s", mysql_error(&conn));
+                return 1;
+        }
+
+        sql_result = mysql_store_result(connection);
+
+        MYSQL mysql;
+        mysql_init(&mysql);
+
+
+
+        if(!mysql_real_connect(&mysql, NULL, "root", "cjfalswjddms",
+                                    "library_program", 3306, (char *)NULL, 0)){
+                printf("%s\n", mysql_error(&mysql));
+                exit(1);
+        }
+
+        printf("MYSQL에 성공적으로 접속하였습니다\n");
+        mysql_close(&mysql);
+
+
+
+
+        printf("SERVER !\n");
+bzero((char *)&serv_addr, sizeof(serv_addr));
+        serv_addr.sin_family=AF_INET;
+        serv_addr.sin_addr.s_addr=inet_addr(SERV_ADDR);
+        serv_addr.sin_port=htons(SERV_TCP_PORT);
+        if((s1=socket(PF_INET, SOCK_STREAM, 0))<0)
+        {
+                printf("socket creation error\n");
+                exit(1);
+        }
+        printf("socket created successfully. socket num is %d\n", s1);
+        x=bind(s1, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+        if (x < 0)
+        {
+                printf("binding failed\n");
+                exit(1);
+        }
+        printf("binding passed\n");
+        listen(s1, 5);
+        xx = sizeof(cli_addr);
+        s2 = accept(s1,(struct sockaddr *)&cli_addr,&xx);
+        printf("we passed accept. new socket num is %d\n", s2);
+
+
+
+        while(1){
+        read(s2,buf,10);
+        buf[10]='\0';
+        printf("client->server : %s\n",buf);
+
+        if(!strcmp(buf,"exit")){
+                exit(0);
+         }
+
+        if(buf[0]=='b'){
+        read(s2,s_bookname,99);
+        printf("검색할 책 제목 : %s\n",s_bookname);
+sprintf(query,"select b_name from books where b_name like '%%%s%%'",s_bookname);
+
+        query_stat=mysql_query(connection, query);
+        sql_result=mysql_store_result(connection);
+        fields=mysql_num_fields(sql_result);
+
+         while((sql_row=mysql_fetch_row(sql_result))!=NULL){
+                        for(i=0;i<fields;i++){
+                         sprintf(result, "%3s \n",sql_row[i]);
+                         printf("보낸 정보 : %s\n", result);
+                         write(s2, result, 255);
+
+                        }
+
+                }
+                        sprintf(result,"end");
+                        printf("%s\n",result);
+                        write(s2,result,255);
+
+        }
+
+        if(!strcmp(buf, "e")){
+                read(s2, e_name, 99);
+                printf("검색할 회원 이름 : %s\n", e_name);
+                sprintf(query, "select name, birth, tel from member where name like '%%%s%%'", e_name);
+                query_stat=mysql_query(connection, query);
+                sql_result=mysql_store_result(connection);
+                fields=mysql_num_fields(sql_result);
+
+                 while((sql_row=mysql_fetch_row(sql_result))!=NULL){
+                //        printf("보낸 정보 : %s\n", result);
+                        for(i=0;i<fields;i++){
+                         sprintf(result, "%3s \n",sql_row[i]);
+                                strcat(test,result);
+                                if((i+1)%3==0){
+                                printf("보낸 정보 : %s\n", test);
+ write(s2, test, 255);
+                                test[0]='\0';
+                                }
+
+                       }
+
+                }
+                        sprintf(result,"end");
+                        printf("%s\n",result);
+                        write(s2,result,255);
+
+        }
+
+
+        if(buf[0]=='a'){
+
+                read(s2, m_name, 20);
+                read(s2, m_birth, 20);
+                read(s2, m_tel, 20);
+                printf("input member : %s %s %s \n", m_name, m_birth, m_tel);
+                sprintf(query,
+                        "insert into member values" "('%s', '%s', '%s')",
+                                m_name, m_birth, m_tel);
+                query_stat=mysql_query(connection, query);
+                printf("member success");
+                read(s2,buf,10);
+                 if(!strcmp(buf,"end")){ break;}
+
+
+
+        }
+
+        if(buf[0]=='d'){
+                read(s2, a_no, 10);
+                read(s2, a_name, 20);
+                read(s2, a_sal, 20);
+ read(s2, a_author, 20);
+                read(s2, a_company, 20);
+                printf("input books : %s %s %s %s %s\n", a_no, a_name, a_sal,
+                                        a_author, a_company);
+                sprintf(query,
+                        "insert into books values" "('%s', '%s', '%s', '%s', '%s')",
+                                a_no, a_name, a_sal ,a_author, a_company);
+                query_stat=mysql_query(connection, query);
+                printf("books success");
+
+                 read(s2,buf,10);
+                 if(!strcmp(buf,"end")){ break;}
+
+        }
+
+
+        if(buf[0]=='c'){
+                query_stat=mysql_query(connection, "select * from books");
+                sql_result=mysql_store_result(connection);
+                fields=mysql_num_fields(sql_result);
+
+                test[0]='\0';
+                while((sql_row=mysql_fetch_row(sql_result))!=NULL){
+                        for(i=0;i<fields;i++){
+                                sprintf(result, "%3s \n",
+                                sql_row[i]);
+
+                                strcat(test,result);
+                                if((i+1)%5==0){
+                                printf("보낸 정보 : %s\n", test);
+                                write(s2, test, 255);
+                                test[0]='\0';
+                                }
+                                }
+                        }
+                        sprintf(result,"end");
+ printf("%s\n",result);
+                        write(s2,result,255);
+                char bnobuf[10];
+                int bno;
+                read(s2,bnobuf,10);
+                printf("%s\n",bnobuf);
+                sscanf(bnobuf+1,"%d",&bno);
+                if(bnobuf[0]=='y'){
+                        sprintf(query,"insert into borrow values(%d,\"test\")",bno);
+                        query_stat = mysql_query(connection, query);
+                        printf("%d %s\n",query_stat,query);
+                        if(query_stat){
+                                sprintf(result,"no");
+                                write(s2,result,255);
+                        }
+                        else{
+
+                                sprintf(result,"end");
+                                write(s2,result,255);
+                        }
+                }
+                else if(bnobuf[0]=='n'){
+                        sprintf(query,"delete from borrow where no=%d",bno);
+                        query_stat = mysql_query(connection, query);
+                        printf("%d %s\n",query_stat,query);
+                        if(query_stat){
+                                sprintf(result,"no");
+                                write(s2,result,255);
+                        }
+                        else{
+
+                                sprintf(result,"end");
+                                write(s2,result,255);
+                        }
+
+                }
+ }
+
+
+        if(buf[0]=='f'){
+                query_stat=mysql_query(connection, "select * from books");
+                sql_result=mysql_store_result(connection);
+                fields=mysql_num_fields(sql_result);
+
+                test[0]='\0';
+                while((sql_row=mysql_fetch_row(sql_result))!=NULL){
+                        for(i=0;i<fields;i++){
+                                sprintf(result, "%3s \n",
+                                sql_row[i]);
+
+                                strcat(test,result);
+                                if((i+1)%5==0){
+                                printf("보낸 정보 : %s\n", test);
+                                write(s2, test, 255);
+                                test[0]='\0';
+                                }
+                                }
+                        }
+                        sprintf(result,"end");
+                        printf("%s\n",result);
+                        write(s2,result,255);
+
+        }
+
+        }
+        mysql_free_result(sql_result);
+        mysql_close(connection);
+
+
+}
+
